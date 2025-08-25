@@ -1,6 +1,5 @@
-// src/screens/InsightsScreen.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Dimensions, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { Pie, PolarChart } from "victory-native";
 import { AsyncStorageExpenseRepository } from "../repo/AsyncStorageExpenseRepository";
 import { useExpenses } from "../hooks/useExpenses";
@@ -23,14 +22,13 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 function colorFor(label: string) {
   if (CATEGORY_COLORS[label]) return CATEGORY_COLORS[label];
-  // simple hash → color fallback
   let h = 0;
   for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) | 0;
   const hex = ((h >>> 0) & 0xffffff).toString(16).padStart(6, "0");
   return `#${hex}`;
 }
 
-// Inline Legend (no separate file needed)
+// Inline Legend
 type LegendRow = { label: string; value: number; color: string };
 const Legend: React.FC<{ data: LegendRow[] }> = ({ data }) => {
   if (data.length === 0) return null;
@@ -48,8 +46,9 @@ const Legend: React.FC<{ data: LegendRow[] }> = ({ data }) => {
 };
 
 const InsightsScreen: React.FC = () => {
-  const { items, loading } = useExpenses(repo);
-  const { byCategory, topLine } = useStats(items);
+  // Pull visible items & range controls from the shared hook
+  const { visible, loading, range, setRange } = useExpenses(repo);
+  const { byCategory, topLine } = useStats(visible);
 
   // Transform to XL data format: { label, value, color }
   const chartData = useMemo(
@@ -62,16 +61,16 @@ const InsightsScreen: React.FC = () => {
     [byCategory]
   );
 
-  // Fix: defer chart render by one frame so Skia draws reliably
+  // Defer chart render by one frame for Skia
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Responsive sizing
+  // Sizing
   const { width } = Dimensions.get("window");
-  const chartSize = Math.min(width - 32, 360); // leave some margin on small screens
+  const chartSize = Math.min(width - 32, 360);
   const innerR = Math.round(chartSize * 0.28);
   const outerR = Math.round(chartSize * 0.45);
 
@@ -82,25 +81,46 @@ const InsightsScreen: React.FC = () => {
         <Text style={styles.sub}>Total: {formatMoney(topLine.total)}</Text>
       </View>
 
+      {/* Range filter */}
+      <View style={filterStyles.row}>
+        <Text style={filterStyles.label}>Range:</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable
+            onPress={() => setRange("This Month")}
+            android_ripple={{ color: "#e5e7eb", radius: 20 }}
+            style={[filterStyles.chip, range === "This Month" && filterStyles.chipActive]}
+          >
+            <Text style={[filterStyles.chipText, range === "This Month" && filterStyles.chipTextActive]}>
+              This Month
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setRange("All")}
+            android_ripple={{ color: "#e5e7eb", radius: 20 }}
+            style={[filterStyles.chip, range === "All" && filterStyles.chipActive]}
+          >
+            <Text style={[filterStyles.chipText, range === "All" && filterStyles.chipTextActive]}>
+              All
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
       {loading ? (
         <View style={styles.center}><Text>Loading…</Text></View>
       ) : chartData.length === 0 ? (
         <View style={styles.center}><Text style={{ color: "#6b7280" }}>No data yet.</Text></View>
       ) : (
         <>
-          {/* Legend above the chart */}
           <Legend data={chartData} />
-
-          {/* Chart */}
           {mounted ? (
-            <View style={{ height: chartSize, marginTop: 50 }}>
+            <View style={{ height: chartSize, marginTop: 12 }}>
               <PolarChart
                 data={chartData}
                 labelKey="label"
                 valueKey="value"
                 colorKey="color"
-                // force re-render when data changes meaningfully
-                key={`pie-${chartData.length}-${topLine.total}`}
+                key={`pie-${chartData.length}-${topLine.total}-${range}`}
               >
                 <Pie.Chart innerRadius={innerR} />
               </PolarChart>
@@ -137,6 +157,21 @@ const legendStyles = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6 },
   label: { flex: 1, fontWeight: "600" },
   value: { fontWeight: "800" },
+});
+
+const filterStyles = StyleSheet.create({
+  row: {
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+  },
+  label: { fontWeight: "700" },
+  chip: {
+    borderWidth: 1, borderColor: "#d1d5db",
+    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  chipActive: { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" },
+  chipText: { color: "#374151" },
+  chipTextActive: { color: "#1e40af", fontWeight: "700" },
 });
 
 export default InsightsScreen;

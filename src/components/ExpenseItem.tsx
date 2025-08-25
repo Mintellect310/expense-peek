@@ -7,13 +7,19 @@ function formatMoney(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+// Parse "YYYY-MM-DD" as LOCAL date (not UTC) to avoid off-by-one
+function fromLocalISODate(s: string) {
+  const [y, m, d] = s.split("-").map((x) => parseInt(x, 10));
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 interface Props {
   item: Expense;
   onDelete(): void;
 }
 
 const ExpenseItem: React.FC<Props> = ({ item, onDelete }) => {
-  const date = new Date(item.dateISO).toLocaleDateString();
+  const date = fromLocalISODate(item.dateISO).toLocaleDateString();
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>

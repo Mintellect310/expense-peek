@@ -21,9 +21,9 @@ export default function App() {
           component={HomeScreen}
           options={{
             title: "Expense Peek",
-            headerStyle: { backgroundColor: "#fff7ed" }, // warm orange tint
-            headerTitleStyle: { color: "#ea580c", fontWeight: "800" },
-            headerTintColor: "#ea580c",
+            headerStyle: { backgroundColor: "#125005ff" },
+            headerTitleStyle: { color: "#fff", fontWeight: "800" },
+            headerTintColor: "#fff",
           }}
         />
         <Stack.Screen
@@ -31,9 +31,9 @@ export default function App() {
           component={InsightsScreen}
           options={{
             title: "Insights",
-            headerStyle: { backgroundColor: "#eff6ff" }, // cool blue tint
-            headerTitleStyle: { color: "#2563eb", fontWeight: "800" },
-            headerTintColor: "#2563eb",
+            headerStyle: { backgroundColor: "#3d2478" }, // cool blue tint
+            headerTitleStyle: { color: "#fff", fontWeight: "800" },
+            headerTintColor: "#fff",
           }}
         />
       </Stack.Navigator>
